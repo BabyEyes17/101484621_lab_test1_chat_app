@@ -152,6 +152,21 @@ export const disconnectServer = () => {
 
 export function logout() {
 
-  sessionStorage.removeItem("user");
+  try {
+
+    if (state.clientIO && state.clientIO.connected) {
+
+      state.clientIO.disconnect();
+    }
+
+  } catch {}
+
+  try {
+
+    sessionStorage.removeItem("user");
+    localStorage.removeItem("user");
+
+  } catch {}
+
   window.location.href = "/";
 }
