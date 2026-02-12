@@ -3,70 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Login</title>
-
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f4f4f4;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-
-        .login-container {
-            background: white;
-            padding: 30px;
-            width: 300px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-
-        h2 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        input {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 15px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            box-sizing: border-box;
-        }
-
-        button {
-            width: 100%;
-            padding: 10px;
-            background: #007bff;
-            border: none;
-            color: white;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-
-        button:hover {
-            background: #0056b3;
-        }
-
-        .signup-link {
-            text-align: center;
-            margin-top: 15px;
-            font-size: 14px;
-        }
-
-        .signup-link a {
-            text-decoration: none;
-            color: #007bff;
-        }
-
-        .signup-link a:hover {
-            text-decoration: underline;
-        }
-    </style>
+    <link rel="stylesheet" href="../styles/login.css" />
 </head>
 <body>
 
@@ -88,31 +25,34 @@
     </div>
 
     <script>
+        
         document.querySelector("form").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const form = e.target;
+            e.preventDefault();
+            const form = e.target;
 
-        const payload = {
-            username: form.username.value,
-            password: form.password.value
-        };
+            const payload = {
+                username: form.username.value.trim(),
+                password: form.password.value
+            };
 
-        const res = await fetch("/api/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        });
+            const res = await fetch("/api/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
 
-        const data = await res.json();
-        if (!res.ok) {
-            alert(data.error || "Login failed");
-            return;
-        }
+            const data = await res.json();
 
-        localStorage.setItem("user", JSON.stringify(data.user));
-        window.location.href = "/chat";
+            if (!res.ok) {
+                alert(data.error || "Login failed");
+                return;
+            }
+
+            sessionStorage.setItem("user", JSON.stringify(data.user));
+            window.location.href = "/chat";
         });
     </script>
-    
+
+
 </body>
 </html>

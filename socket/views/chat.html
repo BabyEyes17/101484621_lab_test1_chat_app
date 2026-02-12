@@ -5,22 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Lab Test 01 - Chat</title>
 
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="../styles/chat.css" />
 
     <script>
-        // Lock behind "session" in localStorage
-        if (!localStorage.getItem("user")) window.location.href = "/";
+        if (!sessionStorage.getItem("user")) window.location.href = "/";
     </script>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="chat.js" defer></script>
+
+
 </head>
 
 <body>
     <div class="app">
 
+
+
         <!-- Sidebar -->
         <aside class="sidebar">
+            
             <div class="brand">
                 <div class="brand-title">Lab Test 01</div>
                 <div class="brand-sub" id="client-id">Connecting...</div>
@@ -28,12 +30,15 @@
             </div>
 
             <div class="panel">
+                
                 <div class="panel-title">Account</div>
+                
                 <div class="row">
                     <button class="btn btn-ghost" onclick="logout()">Logout</button>
                     <button class="btn btn-ghost" onclick="disconnectServer()">Disconnect</button>
                     <button class="btn btn-ghost" onclick="sendPing()">Ping</button>
                 </div>
+
             </div>
 
             <div class="panel">
@@ -53,13 +58,17 @@
             </div>
 
             <div class="panel">
+                
                 <div class="panel-title">Direct Messages</div>
+
+                <div class="row">
+                    <input id="dm-to" class="input input-grow" placeholder="Username (exact)" />
+                    <button class="btn btn-ghost" onclick="addDmChat()" aria-label="Add DM">+</button>
+                </div>
 
                 <div class="list" id="dm-list">
                     <div class="empty-list">No chats yet.</div>
                 </div>
-
-                <input id="dm-to" class="input" placeholder="New Chat (exact username)" />
 
             </div>
 
@@ -67,13 +76,16 @@
                 <div class="panel-title">Debug Log</div>
                 <div id="event-log" class="log"></div>
             </div>
+
         </aside>
+
+
 
         <!-- Main Chat -->
         <main class="chat">
+            
             <header class="chat-header">
                 <div class="chat-title" id="chat-title">Room: (none)</div>
-                <div class="chat-sub" id="chat-sub">Signed in via localStorage session</div>
             </header>
 
             <section class="messages" id="messages">
@@ -87,17 +99,16 @@
             </div>
 
             <footer class="composer">
-                <input id="message-input" class="input input-grow" placeholder="Type a room message…" />
-                <button class="btn" onclick="sendRoomMessage()">Send</button>
+                <input id="composer-input" class="input input-grow" placeholder="Select a room or DM to start..." oninput="onTyping()" />
+                <button class="btn" onclick="sendMessage()">Send</button>
             </footer>
 
-            <footer class="composer composer-dm">
-                <input id="dm-message" class="input input-grow"
-                       placeholder="Type a private message…" oninput="onDmTyping()" />
-                <button class="btn" onclick="sendPrivateMessage()">Send DM</button>
-            </footer>
         </main>
 
     </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="module" src="/js/chat.js"></script>
+
 </body>
 </html>

@@ -1,341 +1,247 @@
-// Lab Test 01
-// Jayden Lewis - 101484621
-
-const express = require('express');
-const path = require('path');
-const iosocket = require('socket.io');
+const express = require("express");
+const path = require("path");
+const iosocket = require("socket.io");
 const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
-const User = require("./models/User");
+
 const GroupMessage = require("./models/GroupMessage");
 const PrivateMessage = require("./models/PrivateMessage");
 
-const SERVER_PORT = process.env.PORT || 3000;
-const app = express();
+const pagesRoutes = require("./routes/routes");
+const authRoutes = require("./routes/authenticated_routes");
 
-// Predefined rooms
+const SERVER_PORT = process.env.PORT || 3000;
+
 const ROOMS = ["devops", "cloud computing", "covid19", "sports", "nodeJS"];
 
-app.use(express.static(path.join(__dirname, 'socket/views')));
+const DB_NAME = process.env.DB_NAME || "lab_test_db";
+const DB_USER_NAME = process.env.DB_USER_NAME || "jayden-lewis";
+const DB_PASSWORD = process.env.DB_PASSWORD || "extrafloofy";
+const CLUSTER_ID = process.env.CLUSTER_ID || "njwrjmg";
+
+const DB_CONNECTION =
+process.env.DB_CONNECTION ||
+`mongodb+srv://${DB_USER_NAME}:${DB_PASSWORD}@comp3123-cluster.${CLUSTER_ID}.mongodb.net/${DB_NAME}?retryWrites=true&w=majority&appName=Cluster0`;
+
+const normalizeKey = (value) => (value || "").trim().toLowerCase();
+const normalizeDisplay = (value) => (value || "").trim();
+
+
+
+const app = express();
+
+
+
+app.use(express.static(path.join(__dirname, "socket/views")));
+app.use("/js", express.static(path.join(__dirname, "socket/js")));
+app.use("/styles", express.static(path.join(__dirname, "socket/styles")));
+
+
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 
 
-// Connecting to MongoDB Atlas
-const DB_NAME = "lab_test_db"
-const DB_USER_NAME = 'jayden-lewis'
-const DB_PASSWORD = 'extrafloofy'
-const CLUSTER_ID = 'njwrjmg'
-const DB_CONNECTION = `mongodb+srv://${DB_USER_NAME}:${DB_PASSWORD}@comp3123-cluster.${CLUSTER_ID}.mongodb.net/${DB_NAME}?retryWrites=true&w=majority&appName=Cluster0`
+app.use(pagesRoutes);
+app.use(authRoutes);
+
+
 
 async function connectToMongoDB(connectionString = DB_CONNECTION) {
-    
-    await mongoose.connect(connectionString);
+await mongoose.connect(connectionString);
 }
-
-const appServer = app.listen(SERVER_PORT, async () => {
-    
-    console.log(`Server running on http://localhost:${SERVER_PORT}/`);
-
-    try {
-        
-        await connectToMongoDB(DB_CONNECTION);
-        console.log("Connected to MongoDB");
-    } 
-    
-    catch (error) {
-        
-        console.error("Error connecting to MongoDB:", error);
-    }
-});
-
-const ioServer = iosocket(appServer);
 
 
 
 mongoose.connection.on("connected", () => {
-    
-    console.log("Mongoose connected");
+console.log("Mongoose connected");
 });
 
 mongoose.connection.on("error", (err) => {
-    
-    console.log("Mongoose error:", err);
+console.log("Mongoose error:", err);
 });
 
 mongoose.connection.on("disconnected", () => {
-    
-    console.log("Mongoose disconnected");
+console.log("Mongoose disconnected");
 });
 
 
 
-// Sign up page
-app.get("/signup", (req, res) => {
-  res.sendFile(path.join(__dirname, "socket/views/signup.html"));
-});
+const appServer = app.listen(SERVER_PORT, async () => {
+console.log(`Server running on http://localhost:${SERVER_PORT}/`);
 
-// Login page
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "socket/views/login.html"));
-});
-
-// Chat page
-app.get("/chat", (req, res) => {
-  res.sendFile(path.join(__dirname, "socket/views/chat.html"));
+try {
+await connectToMongoDB(DB_CONNECTION);
+console.log("Connected to MongoDB");
+} catch (error) {
+console.error("Error connecting to MongoDB:", error);
+}
 });
 
 
 
-// ✅ API: Sign up (creates user in MongoDB)
-app.post("/api/signup", async (req, res) => {
-  try {
-    const { username, email, password } = req.body;
+const ioServer = iosocket(appServer);
 
-    // basic validation
-    if (!username || !email || !password) {
-      return res.status(400).json({ error: "Missing username, email, or password." });
-    }
-
-    // check duplicates
-    const existing = await User.findOne({ $or: [{ username }, { email }] });
-    if (existing) {
-      return res.status(409).json({ error: "Username or email already exists." });
-    }
-
-    const hashed = await bcrypt.hash(password, 10);
-
-    const user = await User.create({
-      username,
-      email,
-      password: hashed
-    });
-
-    return res.status(201).json({
-      message: "Signup successful",
-      user: { id: user._id, username: user.username, email: user.email }
-    });
-  } catch (err) {
-    console.log(err);
-    return res.status(500).json({ error: "Server error." });
-  }
-});
-
-
-
-// ✅ API: Login (verifies password)
-app.post("/api/login", async (req, res) => {
-  try {
-    const { username, password } = req.body;
-
-    if (!username || !password) {
-      return res.status(400).json({ error: "Missing username or password." });
-    }
-
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(401).json({ error: "Invalid username or password." });
-    }
-
-    const ok = await bcrypt.compare(password, user.password);
-    if (!ok) {
-      return res.status(401).json({ error: "Invalid username or password." });
-    }
-
-    // Return something the client can store in localStorage
-    return res.json({
-      message: "Login successful",
-      user: { id: user._id, username: user.username }
-    });
-  } catch (err) {
-    console.log(err);
-    return res.status(500).json({ error: "Server error." });
-  }
-});
-
-
-
-// ✅ track online users by username -> socket.id
 const onlineUsers = new Map();
 
-ioServer.on('connection', (socket) => {
-    
-  console.log('New client connected', socket.id);
+
+
+ioServer.on("connection", (socket) => {
+console.log("New client connected", socket.id);
 
 
 
-  // Register user so we can route private messages and typing indicators
-  socket.on("register-user", (username) => {
-      
-    socket.username = username;
-    onlineUsers.set(username, socket.id);
+socket.on("register-user", (username) => {
+const display = normalizeDisplay(username);
+const key = normalizeKey(username);
 
-    console.log("Online users:", Array.from(onlineUsers.keys()));
-  });
+socket.username = display;
+socket.usernameKey = key;
 
+onlineUsers.set(key, socket.id);
 
-
-  // Optional demo ping
-  socket.on('ping', (data) => {
-      
-    console.log('Ping received from client:', data);
-    socket.emit('pong-ack', "Hello from the Server");
-    console.log('Pong sent to client');
-  });
+console.log("Online users:", Array.from(onlineUsers.keys()));
+});
 
 
 
-  // Join a predefined room
-  socket.on("join-room", async ({ room, username }) => {
-      
-    if (!ROOMS.includes(room)) {
-        
-        console.log(`Join-room rejected (invalid room): ${room}`);
-        return;
-    }
 
-    socket.username = username;
-    onlineUsers.set(username, socket.id);
-
-    // Leave previous room if any
-    if (socket.currentRoom) {
-        
-        socket.leave(socket.currentRoom);
-        ioServer.to(socket.currentRoom).emit("room-system", `${socket.username} left ${socket.currentRoom}`);
-    }
-
-    socket.currentRoom = room;
-    socket.join(room);
-
-    const history = await GroupMessage
-        .find({ room })
-        .sort({ date_sent: 1 })
-        .limit(50);
-
-    socket.emit("room-history", {
-        room,
-        messages: history
-    });
-
-    console.log(`${socket.username} joined room: ${room}`);
-    ioServer.to(room).emit("room-system", `${socket.username} joined ${room}`);
-  });
+socket.on("ping", (data) => {
+console.log("Ping received from client:", data);
+socket.emit("pong-ack", "Hello from the Server");
+console.log("Pong sent to client");
+});
 
 
 
-  // Leave current room
-  socket.on("leave-room", () => {
-      
-    const room = socket.currentRoom;
-    if (!room) return;
+socket.on("join-room", async ({ room, username }) => {
+if (!ROOMS.includes(room)) return;
 
-    socket.leave(room);
+const display = normalizeDisplay(username);
+const key = normalizeKey(username);
 
-    console.log(`${socket.username} left room: ${room}`);
-    ioServer.to(room).emit("room-system", `${socket.username} left ${room}`);
+socket.username = display;
+socket.usernameKey = key;
 
-    socket.currentRoom = null;
-  });
+onlineUsers.set(key, socket.id);
 
+if (socket.currentRoom) {
+socket.leave(socket.currentRoom);
+ioServer.to(socket.currentRoom).emit("room-system", `${socket.username} left ${socket.currentRoom}`);
+}
 
+socket.currentRoom = room;
+socket.join(room);
 
-  // Room message (save to MongoDB + emit to room)
-  socket.on("room-message", async ({ message }) => {
-      
-    try {
-        
-        const room = socket.currentRoom;
+const history = await GroupMessage.find({ room }).sort({ date_sent: 1 }).limit(50);
 
-        if (!room) {
-            
-            console.log("ROOM-MESSAGE rejected: user not in a room");
-            return;
-        }
+socket.emit("room-history", { room, messages: history });
 
-        if (!message || !message.trim()) {
-            
-            console.log("ROOM-MESSAGE rejected: empty message");
-            return;
-        }
-
-        const doc = await GroupMessage.create({
-            from_user: socket.username,
-            room,
-            message: message.trim()
-        });
-
-        console.log("Saved group message:", doc._id);
-        ioServer.to(room).emit("room-message", doc);
-    } 
-    
-    catch (err) {
-        
-        console.log("Failed to save group message:", err);
-    }
-  });
+ioServer.to(room).emit("room-system", `${socket.username} joined ${room}`);
+});
 
 
 
-  // Private message (save to MongoDB + deliver to recipient if online)
-  socket.on("private-message", async ({ to_user, message }) => {
-      
-    try {
-        
-        if (!to_user || !to_user.trim()) return;
-        if (!message || !message.trim()) return;
 
-        const toSocketId = onlineUsers.get(to_user.trim());
+socket.on("leave-room", () => {
+const room = socket.currentRoom;
+if (!room) return;
 
-        const doc = await PrivateMessage.create({
-            from_user: socket.username,
-            to_user: to_user.trim(),
-            message: message.trim()
-        });
+socket.leave(room);
 
-        console.log("Saved private message:", doc._id);
+ioServer.to(room).emit("room-system", `${socket.username} left ${room}`);
 
-        // Send to recipient if they are online
-        if (toSocketId) {
-            
-            ioServer.to(toSocketId).emit("private-message", doc);
-        }
-
-        // Echo back to sender so they see it in their own log
-        socket.emit("private-message", doc);
-    } 
-    
-    catch (err) {
-        
-        console.log("Failed to save private message:", err);
-    }
-  });
+socket.currentRoom = null;
+});
 
 
 
-  // Typing indicator for 1-to-1 chat
-  socket.on("typing", ({ to_user, isTyping }) => {
-      
-    const toSocketId = onlineUsers.get((to_user || "").trim());
-    if (!toSocketId) return;
+socket.on("room-message", async ({ message }) => {
+try {
+const room = socket.currentRoom;
+if (!room) return;
+if (!message || !message.trim()) return;
 
-    ioServer.to(toSocketId).emit("typing", {
-      from_user: socket.username,
-      isTyping: !!isTyping
-    });
-  });
+const doc = await GroupMessage.create({
+from_user: socket.username,
+room,
+message: message.trim(),
+});
+
+ioServer.to(room).emit("room-message", doc);
+} catch (err) {}
+});
 
 
 
-  socket.on('disconnect', () => {
-      
-    console.log('Client disconnected', socket.id);
+socket.on("private-message", async ({ to_user, message }) => {
+try {
+const toKey = normalizeKey(to_user);
+const toDisplay = normalizeDisplay(to_user);
+const msg = (message || "").trim();
 
-    if (socket.username) {
-        
-      onlineUsers.delete(socket.username);
-    }
+if (!toKey) return;
+if (!msg) return;
 
-    console.log("Online users:", Array.from(onlineUsers.keys()));
-  });
+const toSocketId = onlineUsers.get(toKey);
+
+const doc = await PrivateMessage.create({
+from_user: socket.username,
+to_user: toDisplay,
+message: msg,
+});
+
+if (toSocketId) {
+ioServer.to(toSocketId).emit("private-message", doc);
+}
+} catch (err) {}
+});
+
+
+
+socket.on("dm-history", async ({ with_user }) => {
+try {
+const a = (socket.username || "").trim();
+const b = (with_user || "").trim();
+
+if (!a || !b) return;
+
+const messages = await PrivateMessage.find({
+$or: [
+{ from_user: a, to_user: b },
+{ from_user: b, to_user: a }
+]
+})
+.sort({ date_sent: 1 });
+
+socket.emit("dm-history", { with_user: b, messages });
+} catch (err) {}
+});
+
+
+
+socket.on("typing", ({ to_user, isTyping }) => {
+const toKey = normalizeKey(to_user);
+const toSocketId = onlineUsers.get(toKey);
+
+if (!toSocketId) return;
+
+ioServer.to(toSocketId).emit("typing", {
+from_user: socket.username,
+isTyping: !!isTyping,
+});
+});
+
+
+
+socket.on("disconnect", () => {
+console.log("Client disconnected", socket.id);
+
+if (socket.usernameKey) {
+onlineUsers.delete(socket.usernameKey);
+}
+
+console.log("Online users:", Array.from(onlineUsers.keys()));
+});
+
 });
