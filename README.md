@@ -1,7 +1,7 @@
 # Lab Test 01  
 ## Jayden Lewis – 101484621  
 
-## [Demonstration Videot](https://www.youtube.com/watch?v=zSHogr8Ffco)
+## [Demonstration Video](https://www.youtube.com/watch?v=zSHogr8Ffco)
 
 ## Overview
 
