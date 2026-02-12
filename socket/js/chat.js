@@ -7,15 +7,12 @@ import { selectRoom, leaveRoom } from "./chat_rooms.js";
 import { addDmChat } from "./chat_dm.js";
 import { sendMessage, onTyping, sendPing, disconnectServer, logout } from "./actions.js";
 
-// socket instance
 state.clientIO = io();
 
-// auth + initial UI state
 loadUserOrRedirect();
 clearMessagesPanel();
 setComposerPlaceholder();
 
-// socket listeners
 bindSocketEvents();
 
 if (elements.composerInput) {
@@ -31,7 +28,6 @@ if (elements.composerInput) {
   });
 }
 
-// expose to HTML onclick handlers (same as you had)
 window.selectRoom = selectRoom;
 window.addDmChat = addDmChat;
 window.sendMessage = sendMessage;
