@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lab Test 01 - Chat</title>
+
+    <link rel="stylesheet" href="style.css" />
+
+    <script>
+        // Lock behind "session" in localStorage
+        if (!localStorage.getItem("user")) window.location.href = "/";
+    </script>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="chat.js" defer></script>
+</head>
+
+<body>
+    <div class="app">
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-title">Lab Test 01</div>
+                <div class="brand-sub" id="client-id">Connecting...</div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">Account</div>
+                <div class="row">
+                    <button class="btn btn-ghost" onclick="logout()">Logout</button>
+                    <button class="btn btn-ghost" onclick="disconnectServer()">Disconnect</button>
+                </div>
+                <div class="row">
+                    <button class="btn btn-ghost" onclick="sendPing()">Ping</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">Rooms</div>
+
+                <select id="room-select" class="select">
+                    <option value="devops">devops</option>
+                    <option value="cloud computing">cloud computing</option>
+                    <option value="covid19">covid19</option>
+                    <option value="sports">sports</option>
+                    <option value="nodeJS">nodeJS</option>
+                </select>
+
+                <div class="row">
+                    <button class="btn" onclick="joinRoom()">Join</button>
+                    <button class="btn btn-ghost" onclick="leaveRoom()">Leave</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">Direct Message</div>
+                <input id="dm-to" class="input" placeholder="Username (exact)" />
+                <div class="hint">Typing indicator triggers while you type a DM.</div>
+            </div>
+
+            <div class="panel panel-muted">
+                <div class="panel-title">Debug Log</div>
+                <div id="event-log" class="log"></div>
+            </div>
+        </aside>
+
+        <!-- Main Chat -->
+        <main class="chat">
+            <header class="chat-header">
+                <div class="chat-title" id="chat-title">Room: (none)</div>
+                <div class="chat-sub" id="chat-sub">Signed in via localStorage session</div>
+            </header>
+
+            <section class="messages" id="messages">
+                <div class="empty">
+                    Join a room or send a DM to start messaging.
+                </div>
+            </section>
+
+            <div class="typing" id="typing-indicator" style="display:none;">
+                Someone is typing…
+            </div>
+
+            <footer class="composer">
+                <input id="message-input" class="input input-grow" placeholder="Type a room message…" />
+                <button class="btn" onclick="sendRoomMessage()">Send</button>
+            </footer>
+
+            <footer class="composer composer-dm">
+                <input id="dm-message" class="input input-grow"
+                       placeholder="Type a private message…" oninput="onDmTyping()" />
+                <button class="btn" onclick="sendPrivateMessage()">Send DM</button>
+            </footer>
+        </main>
+
+    </div>
+</body>
+</html>
