@@ -41,11 +41,14 @@ const addBubble = (side, text) => {
 
 
 let currentUser = null;
+let currentRoom = null;
 
 try {
     
     currentUser = JSON.parse(localStorage.getItem("user"));
-} catch {
+} 
+
+catch {
     
     currentUser = null;
 }
@@ -55,14 +58,59 @@ if (!currentUser || !currentUser.username) {
     window.location.href = "/";
 }
 
+const loggedInEl = document.getElementById("logged-in-as");
+
+if (loggedInEl) {
+
+    const name = currentUser.username || "Unknown";
+    loggedInEl.innerHTML = `Logged in as: <b>${name}</b>`;
+}
 
 
-let currentRoom = null;
 
-const getSelectedRoom = () => {
-    
-    const el = document.getElementById("room-select");
-    return (el && el.value) ? el.value : "devops";
+const dmList = document.getElementById("dm-list");
+const dmToInput = document.getElementById("dm-to");
+
+const dmRecents = new Map();
+
+const renderDmRecents = () => {
+
+    if (!dmList) return;
+
+    dmList.innerHTML = "";
+
+    if (dmRecents.size === 0) {
+
+        const empty = document.createElement("div");
+        empty.className = "empty-list";
+        empty.textContent = "No chats yet.";
+        dmList.appendChild(empty);
+        return;
+    }
+
+    for (const username of dmRecents.keys()) {
+
+        const btn = document.createElement("button");
+        btn.className = "list-item";
+        btn.textContent = username;
+
+        btn.onclick = () => {
+
+            if (dmToInput) dmToInput.value = username;
+        };
+
+        dmList.appendChild(btn);
+    }
+};
+
+const addDmRecent = (username) => {
+
+    if (!username) return;
+
+    dmRecents.delete(username);
+    dmRecents.set(username, true);
+
+    renderDmRecents();
 };
 
 
@@ -103,9 +151,31 @@ clientIO.on("pong-ack", (data) => {
 
 
 
+let selectedRoom = null;
+
+const setActiveRoomButton = (room) => {
+
+    const list = document.getElementById("room-list");
+    if (!list) return;
+
+    for (const btn of list.querySelectorAll(".list-item")) {
+
+        const isActive = btn.textContent.trim() === room;
+        btn.classList.toggle("active", isActive);
+    }
+};
+
+const selectRoom = (room) => {
+
+    selectedRoom = room;
+    joinRoom();
+};
+
+
+
 const joinRoom = () => {
     
-    const room = getSelectedRoom();
+    const room = selectedRoom || "devops";
 
     if (currentRoom) {
         
@@ -114,6 +184,9 @@ const joinRoom = () => {
     }
 
     currentRoom = room;
+
+    setActiveRoomButton(room);
+
 
     if (chatTitleEl) chatTitleEl.textContent = `Room: ${room}`;
 
@@ -181,7 +254,33 @@ clientIO.on("room-message", (data) => {
     logEvent(`ROOM ${data.room} | ${data.from_user}: ${data.message}`);
 
     const side = (data.from_user === currentUser.username) ? "me" : "other";
-    addBubble(side, `${data.from_user}: ${data.message}`);
+});
+
+
+
+clientIO.on("room-history", ({ room, messages }) => {
+
+    if (messagesDiv) messagesDiv.innerHTML = "";
+
+    if (chatTitleEl) chatTitleEl.textContent = `Room: ${room}`;
+
+    if (!messages || messages.length === 0) {
+
+        if (messagesDiv) {
+            const empty = document.createElement("div");
+            empty.className = "empty";
+            empty.textContent = "No previous messages in this room yet.";
+            messagesDiv.appendChild(empty);
+        }
+
+        return;
+    }
+
+    for (const m of messages) {
+
+        const side = (m.from_user === currentUser.username) ? "me" : "other";
+        addBubble(side, `${m.from_user}: ${m.message}`);
+    }
 });
 
 
@@ -206,10 +305,11 @@ const sendPrivateMessage = () => {
         return;
     }
 
+    addDmRecent(to_user);
+
     clientIO.emit("private-message", { to_user, message });
 
     logEvent(`ON CLIENT - DM - SENT to ${to_user}: ${message}`);
-    addBubble("me", `DM to ${to_user}: ${message}`);
 
     msgEl.value = "";
 };
@@ -218,6 +318,9 @@ const sendPrivateMessage = () => {
 
 clientIO.on("private-message", (data) => {
     
+    const otherUser = (data.from_user === currentUser.username) ? data.to_user : data.from_user;
+    addDmRecent(otherUser);
+
     const direction = (data.from_user === currentUser.username) ? "You →" : `${data.from_user} →`;
     logEvent(`DM ${direction} ${data.to_user}: ${data.message}`);
 
@@ -295,6 +398,7 @@ window.joinRoom = joinRoom;
 window.leaveRoom = leaveRoom;
 
 window.sendRoomMessage = sendRoomMessage;
+window.selectRoom = selectRoom;
 
 window.sendPrivateMessage = sendPrivateMessage;
 window.onDmTyping = onDmTyping;

@@ -187,7 +187,7 @@ ioServer.on('connection', (socket) => {
 
 
   // Join a predefined room
-  socket.on("join-room", ({ room, username }) => {
+  socket.on("join-room", async ({ room, username }) => {
       
     if (!ROOMS.includes(room)) {
         
@@ -207,6 +207,16 @@ ioServer.on('connection', (socket) => {
 
     socket.currentRoom = room;
     socket.join(room);
+
+    const history = await GroupMessage
+        .find({ room })
+        .sort({ date_sent: 1 })
+        .limit(50);
+
+    socket.emit("room-history", {
+        room,
+        messages: history
+    });
 
     console.log(`${socket.username} joined room: ${room}`);
     ioServer.to(room).emit("room-system", `${socket.username} joined ${room}`);

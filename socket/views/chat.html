@@ -24,6 +24,7 @@
             <div class="brand">
                 <div class="brand-title">Lab Test 01</div>
                 <div class="brand-sub" id="client-id">Connecting...</div>
+                <div class="brand-user" id="logged-in-as">Logged in as: </div>
             </div>
 
             <div class="panel">
@@ -31,33 +32,35 @@
                 <div class="row">
                     <button class="btn btn-ghost" onclick="logout()">Logout</button>
                     <button class="btn btn-ghost" onclick="disconnectServer()">Disconnect</button>
-                </div>
-                <div class="row">
                     <button class="btn btn-ghost" onclick="sendPing()">Ping</button>
                 </div>
             </div>
 
             <div class="panel">
-                <div class="panel-title">Rooms</div>
+                <div class="panel">
+                    
+                    <div class="panel-title">Rooms</div>
 
-                <select id="room-select" class="select">
-                    <option value="devops">devops</option>
-                    <option value="cloud computing">cloud computing</option>
-                    <option value="covid19">covid19</option>
-                    <option value="sports">sports</option>
-                    <option value="nodeJS">nodeJS</option>
-                </select>
+                    <div class="list" id="room-list">
+                        <button class="list-item" onclick="selectRoom('devops')">devops</button>
+                        <button class="list-item" onclick="selectRoom('cloud computing')">cloud computing</button>
+                        <button class="list-item" onclick="selectRoom('covid19')">covid19</button>
+                        <button class="list-item" onclick="selectRoom('sports')">sports</button>
+                        <button class="list-item" onclick="selectRoom('nodeJS')">nodeJS</button>
+                    </div>
 
-                <div class="row">
-                    <button class="btn" onclick="joinRoom()">Join</button>
-                    <button class="btn btn-ghost" onclick="leaveRoom()">Leave</button>
                 </div>
             </div>
 
             <div class="panel">
-                <div class="panel-title">Direct Message</div>
-                <input id="dm-to" class="input" placeholder="Username (exact)" />
-                <div class="hint">Typing indicator triggers while you type a DM.</div>
+                <div class="panel-title">Direct Messages</div>
+
+                <div class="list" id="dm-list">
+                    <div class="empty-list">No chats yet.</div>
+                </div>
+
+                <input id="dm-to" class="input" placeholder="New Chat (exact username)" />
+
             </div>
 
             <div class="panel panel-muted">
